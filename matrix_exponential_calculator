@@ -4,7 +4,7 @@ from scipy.linalg import expm
 
 def matrix_exponential(M, epsilon=1e-6):
     """
-    Compute the matrix exponential e^M using power series without advanced numpy features.
+    Compute the matrix exponential e^M using power series with Lagrange's remainder.
 
     Parameters:
         M (np.array): Input square matrix of shape (n, n).
@@ -23,13 +23,17 @@ def matrix_exponential(M, epsilon=1e-6):
         term = divide_matrix_by_scalar(term, k)  # Divide by k
         result = add_matrices(result, term)  # Add the term to the result
 
-        # Check convergence
-        if max_norm(term) < epsilon:
+        # Compute Lagrange's remainder for the next term
+        next_term_norm = max_norm(term @ M) / (k + 1)
+
+        # Check convergence based on Lagrange's remainder
+        if next_term_norm < epsilon:
             break
 
         k += 1
 
     return result
+
 
 def scale_and_square_exponential(M, epsilon=1e-6):
     """
@@ -42,9 +46,9 @@ def scale_and_square_exponential(M, epsilon=1e-6):
     Returns:
         np.array: The matrix exponential e^M.
     """
-    n = len(M)
+    n = len(M) # save the amount of rows
     max_norm_value = max_norm(M)
-    s = max(0, int(np.log2(max_norm_value)) + 1)
+    s = max(0, int(np.log2(max_norm_value)) + 1) # המספר האופטימלי כך שהמטריצה תתכנס הכי מהר
     scaled_M = divide_matrix_by_scalar(M, 2**s)
     eM_scaled = matrix_exponential(scaled_M, epsilon)
 
@@ -66,9 +70,9 @@ def add_matrices(A, B):
     """Add two matrices A and B manually."""
     return A + B
 
-def max_norm(A):
+def max_norm(matrix):
     """Compute the maximum absolute row sum norm (infinity norm) manually."""
-    return np.max(np.sum(np.abs(A), axis=1))
+    return np.max(np.sum(np.abs(matrix), axis=1))
 
 def read_data(path, delim):
     """Read matrix data from a file with basic cleanup."""
@@ -100,18 +104,15 @@ if __name__ == "__main__":
         t_start = time()
         eM = scale_and_square_exponential(matrix, epsilon)
         t_end = time()
-
-        print("Time:", t_end - t_start)
-        #print("Matrix M:")
-        #for row in matrix:
-        #    print(row)
-        print("\nMatrix Exponential e^M:")
+        print("Run time of our algorithm: ", t_end - t_start)
+        print("Matrix Exponential e^M:")
         print(eM[0][0])
-        #for row in eM:
-        #    print(row)
-
+        print("#########################################")
+        t2_start = time()
         scipy_result = expm(matrix)
-        print("Scipy Result:")
+        t2_end=time()
+        print("Matrix Exponential using Scipy:")
         print(scipy_result[0][0])
+        print("Run time of the original algorithm: ", t2_end - t2_start)
     else:
         print("No valid matrix to process.")
