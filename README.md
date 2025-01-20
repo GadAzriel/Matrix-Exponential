@@ -1,5 +1,4 @@
 # Matrix Exponential Solver
-## Scientific Programming: 
 
 This project provides a Python implementation of the **matrix exponential**, a mathematical operation widely used in scientific computations, control theory, and quantum mechanics. The script leverages popular Python libraries such as numpy and scipy to deliver accurate and efficient results. Additionally, the implementation incorporates **Lagrange's remainder** for rigorous convergence checking in the power series computation.
 
