@@ -1,7 +1,7 @@
-# Scientific Programming: Matrix Exponential Solver
+# Matrix Exponential Solver
+## Scientific Programming: 
 
-This project provides a Python implementation of the **matrix exponential**, a mathematical operation widely used in scientific computations, control theory, and quantum mechanics. 
-The script leverages popular Python libraries such as numpy and scipy to deliver accurate and efficient results.
+This project provides a Python implementation of the **matrix exponential**, a mathematical operation widely used in scientific computations, control theory, and quantum mechanics. The script leverages popular Python libraries such as numpy and scipy to deliver accurate and efficient results. Additionally, the implementation incorporates **Lagrange's remainder** for rigorous convergence checking in the power series computation.
 
 ---
 
@@ -9,9 +9,10 @@ The script leverages popular Python libraries such as numpy and scipy to deliver
 
 - Computes the **matrix exponential** \( e^M \) for any square matrix \( M \).
 - Adjustable precision with the `epsilon` parameter.
+- Incorporates **Lagrange's remainder** to ensure accurate convergence during power series computations.
 - Uses efficient matrix operations for performance.
 - Modular and easy-to-extend codebase.
-- Computes the matrix exponential using the Power Series and Norm algorithm.
+- Computes the matrix exponential using the Power Series with Norm and Lagrange's remainder algorithm.
 
 ---
 
@@ -105,6 +106,7 @@ Contributions are welcome! To contribute:
 5. Open a pull request.
 
 ---
+
 ## **Contact**
 
 For questions or suggestions, feel free to reach out:
@@ -114,4 +116,3 @@ For questions or suggestions, feel free to reach out:
 - **GitHub**: [AdarBudomski](https://github.com/adar688)
 
 Happy coding! 🚀
-
