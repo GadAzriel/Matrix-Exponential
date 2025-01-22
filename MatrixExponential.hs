@@ -1,86 +1,67 @@
-module MatrixExponential where
+import Prelude hiding ((<>))
+import Numeric.LinearAlgebra
 
-import Data.List (transpose)
-import System.IO
-import Text.Read (readMaybe)
+-- Identity Matrix
+identityMatrix :: Int -> Matrix Double
+identityMatrix n = ident n
 
-type Matrix = [[Double]]
-type Vector = [Double]
+-- Divide Matrix by Scalar
+divideMatrixByScalar :: Matrix Double -> Double -> Matrix Double
+divideMatrixByScalar m scalar = scale (1 / scalar) m
 
--- Get first element of matrix
-getFirstElement :: Matrix -> Double
-getFirstElement m = (head . head) m
+-- Add Two Matrices
+addMatrices :: Matrix Double -> Matrix Double -> Matrix Double
+addMatrices = (+)
 
--- Basic matrix operations
-multiplyMatrices :: Matrix -> Matrix -> Matrix
-multiplyMatrices a b = 
-    [[sum $ zipWith (*) row col | col <- transpose b] | row <- a]
-
-addMatrices :: Matrix -> Matrix -> Matrix
-addMatrices = zipWith (zipWith (+))
-
-divideMatrixByScalar :: Matrix -> Double -> Matrix
-divideMatrixByScalar matrix scalar = 
-    map (map (/ scalar)) matrix
-
-identityMatrix :: Int -> Matrix
-identityMatrix n = 
-    [[if i == j then 1 else 0 | j <- [0..n-1]] | i <- [0..n-1]]
-
-maxNorm :: Matrix -> Double
-maxNorm matrix = maximum $ map (sum . map abs) matrix
-
-matrixExponential :: Matrix -> Double -> Matrix
-matrixExponential m epsilon = go identityM identityM 1
+-- Max Norm (Infinity Norm)
+maxNorm :: Matrix Double -> Double
+maxNorm m = maximum $ toList $ cmap abs $ m #> vectorOfOnes
   where
-    n = length m
-    identityM = identityMatrix n
-    go result term k
-      | nextTermNorm < epsilon = result
-      | otherwise = go newResult newTerm (k + 1)
-      where
-        newTerm = divideMatrixByScalar (multiplyMatrices term m) k
-        newResult = addMatrices result newTerm
-        nextTermNorm = maxNorm (multiplyMatrices newTerm m) / (k + 1)
+    vectorOfOnes = konst 1 (cols m)
 
-scaleAndSquareExponential :: Matrix -> Double -> Matrix
-scaleAndSquareExponential m epsilon = 
-    let maxNormValue = maxNorm m
-        s = max 0 (floor (logBase 2 maxNormValue) + 1)
-        scaledM = divideMatrixByScalar m (2 ^ s)
-        eMScaled = matrixExponential scaledM epsilon
-        finalResult = iterate (multiplyMatrices eMScaled) eMScaled !! (s - 1)
-    in if s == 0 then eMScaled else finalResult
-
-readMatrix :: FilePath -> IO Matrix
-readMatrix path = do
-    content <- readFile path
-    let rows = lines content
-        matrix = mapM (mapM readDouble . words) rows
-    case matrix of
-        Just m | isSquareMatrix m -> return m
-        _ -> error "Invalid matrix format or non-square matrix"
+-- Compute the Matrix Exponential using Power Series
+matrixExponential :: Matrix Double -> Double -> Matrix Double
+matrixExponential m epsilon = computeExponential (identityMatrix n) (identityMatrix n) 1
   where
-    readDouble :: String -> Maybe Double
-    readDouble = readMaybe
-    isSquareMatrix :: Matrix -> Bool
-    isSquareMatrix m = 
-        let rows = length m
-        in all ((== rows) . length) m
+    n = rows m
+    computeExponential result term k =
+      let term' = divideMatrixByScalar (term <> m) k
+          result' = addMatrices result term'
+          nextTermNorm = maxNorm (term' <> m) / (k + 1)
+       in if nextTermNorm < epsilon
+            then result'
+            else computeExponential result' term' (k + 1)
+
+-- Scaling and Squaring Method for Matrix Exponential
+scaleAndSquareExponential :: Matrix Double -> Double -> Matrix Double
+scaleAndSquareExponential m epsilon =
+  let maxNormValue = maxNorm m
+      s = max 0 (ceiling (logBase 2 maxNormValue))
+      scaledM = divideMatrixByScalar m (2 ^^ s)
+      eMScaled = matrixExponential scaledM epsilon
+   in foldl (\acc _ -> acc <> acc) eMScaled [1 .. s]
+
+-- Read Matrix from File
+readMatrixFromFile :: FilePath -> IO (Maybe (Matrix Double))
+readMatrixFromFile path = do
+  content <- readFile path
+  let matrixLines = lines content
+  let parsedMatrix = map (map read . words) matrixLines
+  let matrix = fromLists parsedMatrix
+  if rows matrix /= cols matrix
+    then return Nothing
+    else return (Just matrix)
 
 main :: IO ()
 main = do
-    putStrLn "Reading matrix from exp_data.txt..."
-    matrix <- readMatrix "exp_data.txt"
-    let epsilon = 1e-6
-        firstVal = getFirstElement matrix
-    
-    putStrLn $ "First value of input matrix: " ++ show firstVal
-    
-    putStrLn "\nCalculating using power series method..."
-    let result1 = matrixExponential matrix epsilon
-    putStrLn $ "First value of result (power series): " ++ show (getFirstElement result1)
-    
-    putStrLn "\nCalculating using scale and square method..."
-    let result2 = scaleAndSquareExponential matrix epsilon
-    putStrLn $ "First value of result (scale and square): " ++ show (getFirstElement result2)
+  let epsilon = 1e-6
+  let filePath = "exp_data.txt"
+  maybeMatrix <- readMatrixFromFile filePath
+  case maybeMatrix of
+    Nothing -> putStrLn "Invalid matrix or file not found."
+    Just matrix -> do
+      putStrLn "Computing matrix exponential using Scaling and Squaring Method..."
+      let eM = scaleAndSquareExponential matrix epsilon
+      -- Print only the first value (top-left element of the matrix)
+      putStrLn $ "First value of the result: " ++ show (eM `atIndex` (0, 0))
+

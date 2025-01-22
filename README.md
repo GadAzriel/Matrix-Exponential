@@ -1,31 +1,51 @@
 # Matrix Exponential Solver
 
-This project provides a Python implementation of the **matrix exponential**, a mathematical operation widely used in scientific computations, control theory, and quantum mechanics. The script leverages popular Python libraries such as numpy and scipy to deliver accurate and efficient results. Additionally, the implementation incorporates **Lagrange's remainder** for rigorous convergence checking in the power series computation.
+This project provides **Python** and **Haskell** implementations of the **matrix exponential**, a mathematical operation widely used in scientific computations, control theory, and quantum mechanics. 
+Both implementations deliver accurate and efficient results, with rigorous convergence checking using **Lagrange's remainder** for the power series computation.
 
 ---
 
 ## **Features**
 
 - Computes the **matrix exponential** \( e^M \) for any square matrix \( M \).
+- Available in **Python** and **Haskell**.
 - Adjustable precision with the `epsilon` parameter.
 - Incorporates **Lagrange's remainder** to ensure accurate convergence during power series computations.
-- Uses efficient matrix operations for performance.
-- Modular and easy-to-extend codebase.
-- Computes the matrix exponential using the Power Series with Norm and Lagrange's remainder algorithm.
+- Python implementation leverages `numpy` and `scipy` for efficient matrix operations.
+- Haskell implementation uses the **HMatrix** library for efficient and precise matrix computations.
+- Modular and easy-to-extend codebases.
 
 ---
 
 ## **Installation**
 
-To run this project, ensure you have Python 3.7 or later installed. Then, install the required dependencies:
+### Python
+
+To run the Python implementation, ensure you have Python 3.7 or later installed. Then, install the required dependencies:
 
 ```bash
 pip install numpy scipy
 ```
 
+### Haskell
+
+To run the Haskell implementation, install the **HMatrix** library. If you're using `stack`:
+
+```bash
+stack install hmatrix
+```
+
+Or, for `cabal`:
+
+```bash
+cabal install hmatrix
+```
+
 ---
 
 ## **Usage**
+
+### Python
 
 1. Clone this repository:
    ```bash
@@ -51,18 +71,44 @@ pip install numpy scipy
    print("Matrix Exponential:\n", result)
    ```
 
+### Haskell
+
+1. Clone the repository and navigate to the Haskell implementation:
+   ```bash
+   git clone https://github.com/GadAzriel/Scientific-Programming.git
+   cd Scientific-Programming/haskell
+   ```
+
+2. Run the program using `stack` or `ghci`:
+   ```bash
+   stack run
+   ```
+
+3. Example usage:
+   Define a matrix in a file (e.g., `matrix.txt`) with space-separated rows:
+   ```
+   0 1
+   -1 0
+   ```
+
+   Run the program:
+   ```bash
+   ./MatrixExponential matrix.txt
+   ```
+
 ---
 
 ## **Examples**
 
-### Example 1: Identity Matrix
+### Example 1: Identity Matrix (Python and Haskell)
 
-Input:
+**Input (Python):**
 ```python
 M = np.eye(3)
 result = matrix_exponential(M)
 ```
-Output:
+
+**Output:**
 ```text
 Matrix Exponential:
 [[2.71828183 0.         0.        ]
@@ -70,18 +116,59 @@ Matrix Exponential:
  [0.         0.         2.71828183]]
 ```
 
+**Input (Haskell):**
+Content of `matrix.txt`:
+```
+1 0 0
+0 1 0
+0 0 1
+```
+
+Run the program:
+```bash
+./MatrixExponential matrix.txt
+```
+
+**Output:**
+```text
+Matrix Exponential:
+(2.718281828459045 0.0 0.0)
+(0.0 2.718281828459045 0.0)
+(0.0 0.0 2.718281828459045)
+```
+
 ### Example 2: Rotation Matrix
 
-Input:
+**Input (Python):**
 ```python
 M = np.array([[0, -1], [1, 0]])
 result = matrix_exponential(M)
 ```
-Output:
+
+**Output:**
 ```text
 Matrix Exponential:
 [[0.54030231 -0.84147098]
  [0.84147098  0.54030231]]
+```
+
+**Input (Haskell):**
+Content of `matrix.txt`:
+```
+0 -1
+1 0
+```
+
+Run the program:
+```bash
+./MatrixExponential matrix.txt
+```
+
+**Output:**
+```text
+Matrix Exponential:
+(0.5403023058681398 -0.8414709848078965)
+(0.8414709848078965 0.5403023058681398)
 ```
 
 ---
