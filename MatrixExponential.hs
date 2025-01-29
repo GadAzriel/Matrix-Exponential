@@ -1,67 +1,97 @@
-import Prelude hiding ((<>))
 import Numeric.LinearAlgebra
+import Prelude hiding ((<>))
+import Data.Time.Clock (getCurrentTime, diffUTCTime)
 
--- Identity Matrix
-identityMatrix :: Int -> Matrix Double
-identityMatrix n = ident n
+-- Factorial function
+factorial :: Int -> Int -> Int
+factorial 0 acc = acc
+factorial x acc = factorial (x - 1) (acc * x)
 
--- Divide Matrix by Scalar
-divideMatrixByScalar :: Matrix Double -> Double -> Matrix Double
-divideMatrixByScalar m scalar = scale (1 / scalar) m
+-- Lagrange remainder calculation
+lagrangeRemainder :: Matrix Double -> Int -> Double
+lagrangeRemainder mat n =
+  let matNorm = matrixNorm mat 
+      remainder = (exp matNorm / fromIntegral (factorial (n + 1) 1)) * (matNorm ^^ (n + 1))
+  in remainder
 
--- Add Two Matrices
-addMatrices :: Matrix Double -> Matrix Double -> Matrix Double
-addMatrices = (+)
+-- Scaling down the matrix
+scaleDownMatrix :: Matrix Double -> Matrix Double
+scaleDownMatrix mat = mat * 0.5
 
--- Max Norm (Infinity Norm)
-maxNorm :: Matrix Double -> Double
-maxNorm m = maximum $ toList $ cmap abs $ m #> vectorOfOnes
-  where
-    vectorOfOnes = konst 1 (cols m)
+-- Function to calculate the norm of a matrix
+matrixNorm :: Matrix Double -> Double
+matrixNorm mat = sqrt . sumElements $ mat * mat
 
--- Compute the Matrix Exponential using Power Series
+-- Scale matrix recursively to reduce its norm below 2
+scaleMatrix :: Matrix Double -> Int -> (Matrix Double, Int)
+scaleMatrix mat scalingFactor
+  | matrixNorm mat <= 2 = (mat, scalingFactor)
+  | otherwise = scaleMatrix (scaleDownMatrix mat) (scalingFactor + 1)
+
+-- Compute the next term in the Taylor series
+computeNextTerm :: Matrix Double -> Matrix Double -> Int -> Matrix Double
+computeNextTerm lastTerm mat n = (lastTerm <> mat) * (1 / fromIntegral n)
+
+-- Scaling the matrix back up
+scalingBackMatrix :: Matrix Double -> Int -> Matrix Double
+scalingBackMatrix mat 0 = mat
+--                                                     Check the multi
+scalingBackMatrix mat scalingFactor = scalingBackMatrix (mat <> mat) (scalingFactor - 1)
+
+-- Single step of the Taylor series calculation
+taylorSeriesStep :: Matrix Double -> Matrix Double -> Matrix Double -> Int -> (Matrix Double, Matrix Double)
+taylorSeriesStep mat eA lastTerm n =
+  let nextTerm = computeNextTerm lastTerm mat n
+      newEA = eA + nextTerm
+  in (newEA, nextTerm)
+
+-- Full Taylor series calculation
+taylorSeries :: Matrix Double -> Matrix Double -> Matrix Double -> Int -> Double -> Matrix Double
+taylorSeries mat eA lastTerm n epsilon =
+  let (updatedEA, nextTerm) = taylorSeriesStep mat eA lastTerm n
+      remainder = lagrangeRemainder mat n
+  in if remainder < epsilon
+       then updatedEA 
+       else taylorSeries mat updatedEA nextTerm (n + 1) epsilon
+
+-- Matrix exponential calculation
 matrixExponential :: Matrix Double -> Double -> Matrix Double
-matrixExponential m epsilon = computeExponential (identityMatrix n) (identityMatrix n) 1
-  where
-    n = rows m
-    computeExponential result term k =
-      let term' = divideMatrixByScalar (term <> m) k
-          result' = addMatrices result term'
-          nextTermNorm = maxNorm (term' <> m) / (k + 1)
-       in if nextTermNorm < epsilon
-            then result'
-            else computeExponential result' term' (k + 1)
+matrixExponential mat epsilon =
+  let (scaledMat, scalingFactor) = scaleMatrix mat 0
+      identityMatrix = ident (rows mat)
+      eA = taylorSeries scaledMat identityMatrix identityMatrix 1 epsilon
+  in scalingBackMatrix eA scalingFactor
 
--- Scaling and Squaring Method for Matrix Exponential
-scaleAndSquareExponential :: Matrix Double -> Double -> Matrix Double
-scaleAndSquareExponential m epsilon =
-  let maxNormValue = maxNorm m
-      s = max 0 (ceiling (logBase 2 maxNormValue))
-      scaledM = divideMatrixByScalar m (2 ^^ s)
-      eMScaled = matrixExponential scaledM epsilon
-   in foldl (\acc _ -> acc <> acc) eMScaled [1 .. s]
-
--- Read Matrix from File
-readMatrixFromFile :: FilePath -> IO (Maybe (Matrix Double))
-readMatrixFromFile path = do
+-- Reading data from a file without handling commas
+readData :: FilePath -> IO (Matrix Double)
+readData path = do
   content <- readFile path
-  let matrixLines = lines content
-  let parsedMatrix = map (map read . words) matrixLines
-  let matrix = fromLists parsedMatrix
-  if rows matrix /= cols matrix
-    then return Nothing
-    else return (Just matrix)
+  let rows = map (map read . words) $ lines content
+  return $ fromLists rows
 
+-- Main function
 main :: IO ()
 main = do
-  let epsilon = 1e-6
-  let filePath = "exp_data.txt"
-  maybeMatrix <- readMatrixFromFile filePath
-  case maybeMatrix of
-    Nothing -> putStrLn "Invalid matrix or file not found."
-    Just matrix -> do
-      putStrLn "Computing matrix exponential using Scaling and Squaring Method..."
-      let eM = scaleAndSquareExponential matrix epsilon
-      -- Print only the first value (top-left element of the matrix)
-      putStrLn $ "First value of the result: " ++ show (eM `atIndex` (0, 0))
+  let path = "exp_data.txt"
+      epsilon = 1e-6
 
+  -- Read matrix data
+  mat <- readData path
+
+  -- Custom implementation
+  startTime <- getCurrentTime
+  let result = matrixExponential mat epsilon
+  endTime <- getCurrentTime
+  putStrLn $ "Time for our implementation: " ++ show (realToFrac (diffUTCTime endTime startTime) :: Double) ++ " s"
+
+  -- HMatrix implementation
+  startTimeExpm <- getCurrentTime
+  let resultExpm = expm mat
+  endTimeExpm <- getCurrentTime
+  putStrLn $ "Time for HMatrix expm implementation: " ++ show (realToFrac (diffUTCTime endTimeExpm startTimeExpm) :: Double) ++ " s"
+
+  -- Display first elements
+  putStrLn "First element of our matrix:"
+  print $ result ! 0 ! 0
+  putStrLn "First element of HMatrix matrix:"
+  print $ resultExpm ! 0 ! 0
